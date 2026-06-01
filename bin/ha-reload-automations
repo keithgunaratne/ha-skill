@@ -1,0 +1,8 @@
+#!/bin/sh
+# Reload Home Assistant automations without restarting the container.
+
+SKILL_BIN="$(cd "$(dirname "$0")" && pwd)"
+echo "==> Reloading automations..."
+"$SKILL_BIN/ha-api" POST /api/services/automation/reload '{}'
+echo ""
+echo "==> Done."

@@ -1,0 +1,26 @@
+#!/bin/sh
+# Validate the Home Assistant configuration inside the container.
+
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$SKILL_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: .env not found at $ENV_FILE" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+
+if [ -z "$HA_CONTAINER" ]; then
+  echo "ERROR: HA_CONTAINER is not set in $ENV_FILE" >&2
+  exit 1
+fi
+
+echo "==> Checking Home Assistant configuration in container '$HA_CONTAINER'..."
+if docker exec "$HA_CONTAINER" python -m homeassistant --script check_config --config /config 2>&1; then
+  echo "==> Config OK (exit 0)"
+else
+  echo "==> Config FAILED (exit $?)" >&2
+  exit 1
+fi

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Commit any uncommitted changes to HA config files. Intended to run nightly via cron.
+set -euo pipefail
+
+# Repo root: prefer HA_CONFIG_DIR, else derive from this script's location
+# (bin -> ha-skill -> skills -> .claude -> repo root).
+REPO="${HA_CONFIG_DIR:-$(cd "$(dirname "$0")/../../../.." && pwd)}"
+cd "$REPO"
+
+# Stage everything not excluded by .gitignore (UI-managed YAML, new dashboards,
+# integration changes, etc.). .gitignore keeps runtime state / secrets out.
+git add -A
+
+# Nothing staged — nothing to do
+if git diff --cached --quiet; then
+  exit 0
+fi
+
+git commit -m "chore: nightly snapshot $(date +%F)"
+
+# Mirror to the private remote if one is configured (origin). Non-fatal if offline.
+if git remote get-url origin >/dev/null 2>&1; then
+  git push origin HEAD || echo "WARN: nightly snapshot commit created but push to origin failed" >&2
+fi

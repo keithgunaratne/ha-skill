@@ -1,0 +1,45 @@
+#!/bin/sh
+# Wait until the HA API responds successfully (authenticated).
+# Usage: ha-wait-ready [TIMEOUT_SECONDS]
+# Exits 0 when ready, 1 if timeout is reached.
+
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$SKILL_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: .env not found at $ENV_FILE" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+
+if [ -z "$HA_URL" ]; then
+  echo "ERROR: HA_URL is not set in $ENV_FILE" >&2
+  exit 1
+fi
+
+if [ -z "$HA_TOKEN" ] || [ "$HA_TOKEN" = "replace_with_manually_created_long_lived_access_token" ]; then
+  echo "ERROR: HA_TOKEN is not set or is still a placeholder in $ENV_FILE" >&2
+  exit 1
+fi
+
+TIMEOUT="${1:-120}"
+ELAPSED=0
+
+echo "Waiting for HA API at ${HA_URL} (timeout: ${TIMEOUT}s)..."
+
+while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+  if curl -sf \
+       -H "Authorization: Bearer $HA_TOKEN" \
+       "${HA_URL%/}/api/" \
+       > /dev/null 2>&1; then
+    echo "HA ready (${ELAPSED}s elapsed)."
+    exit 0
+  fi
+  sleep 5
+  ELAPSED=$((ELAPSED + 5))
+done
+
+echo "ERROR: HA API did not become ready within ${TIMEOUT}s." >&2
+exit 1

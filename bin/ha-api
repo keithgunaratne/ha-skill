@@ -1,0 +1,45 @@
+#!/bin/sh
+# Generic Home Assistant REST API wrapper.
+# Usage: ha-api METHOD PATH [JSON_BODY]
+
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$SKILL_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: .env not found at $ENV_FILE" >&2
+  echo "       Copy env.example to .env and fill in HA_TOKEN." >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+
+if [ -z "$HA_URL" ]; then
+  echo "ERROR: HA_URL is not set in $ENV_FILE" >&2
+  exit 1
+fi
+
+if [ -z "$HA_TOKEN" ] || [ "$HA_TOKEN" = "replace_with_manually_created_long_lived_access_token" ]; then
+  echo "ERROR: HA_TOKEN is not set or is still a placeholder in $ENV_FILE" >&2
+  echo "       Create a long-lived access token in the HA UI and paste it into .env." >&2
+  exit 1
+fi
+
+METHOD="${1:?Usage: ha-api METHOD PATH [JSON_BODY]}"
+PATH_ARG="${2:?Usage: ha-api METHOD PATH [JSON_BODY]}"
+BODY="$3"
+
+URL="${HA_URL%/}${PATH_ARG}"
+
+if [ -n "$BODY" ]; then
+  curl -s -X "$METHOD" \
+    -H "Authorization: Bearer $HA_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$BODY" \
+    "$URL"
+else
+  curl -s -X "$METHOD" \
+    -H "Authorization: Bearer $HA_TOKEN" \
+    -H "Content-Type: application/json" \
+    "$URL"
+fi

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Show recent Docker logs for the Home Assistant container.
+# Usage: ha-logs [N]   (default: 200 lines)
+
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$SKILL_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: .env not found at $ENV_FILE" >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+
+if [ -z "$HA_CONTAINER" ]; then
+  echo "ERROR: HA_CONTAINER is not set in $ENV_FILE" >&2
+  exit 1
+fi
+
+LINES="${1:-200}"
+docker logs --tail "$LINES" "$HA_CONTAINER"

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Fetch all entity states from Home Assistant.
+
+SKILL_BIN="$(cd "$(dirname "$0")" && pwd)"
+"$SKILL_BIN/ha-api" GET /api/states
